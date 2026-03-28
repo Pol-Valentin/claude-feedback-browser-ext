@@ -17,10 +17,33 @@ const RECONNECT_DELAY = 2000
 // --- Session name discovery ---
 function getSessionName(): string | null {
   try {
+    // First try sessions/{ppid}.json for explicit name
     const sessionPath = join(homedir(), '.claude', 'sessions', `${process.ppid}.json`)
     if (existsSync(sessionPath)) {
       const data = JSON.parse(readFileSync(sessionPath, 'utf-8'))
-      return data.name || null
+      if (data.name) return data.name
+
+      // If no name, look for customTitle in the project JSONL
+      const sessionId = data.sessionId
+      if (sessionId) {
+        const projectDir = join(homedir(), '.claude', 'projects')
+        if (existsSync(projectDir)) {
+          const { readdirSync } = require('fs')
+          for (const dir of readdirSync(projectDir)) {
+            const jsonlPath = join(projectDir, dir, `${sessionId}.jsonl`)
+            if (existsSync(jsonlPath)) {
+              // Read just the first line
+              const firstLine = readFileSync(jsonlPath, 'utf-8').split('\n')[0]
+              if (firstLine) {
+                const entry = JSON.parse(firstLine)
+                if (entry.type === 'custom-title' && entry.customTitle) {
+                  return entry.customTitle
+                }
+              }
+            }
+          }
+        }
+      }
     }
   } catch {}
   return null
