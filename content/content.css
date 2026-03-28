@@ -1,0 +1,92 @@
+/* Inspector overlay */
+#cf-inspector-overlay {
+  position: absolute;
+  z-index: 2147483646;
+  pointer-events: none;
+  background: rgba(107, 76, 230, 0.15);
+  border: 2px solid rgba(107, 76, 230, 0.8);
+  border-radius: 2px;
+  transition: top 0.05s, left 0.05s, width 0.05s, height 0.05s;
+}
+
+/* Remote highlight overlay */
+.cf-highlight-overlay {
+  position: absolute;
+  z-index: 2147483645;
+  pointer-events: auto;
+  cursor: pointer;
+  background: rgba(34, 197, 94, 0.12);
+  border: 2px solid rgba(34, 197, 94, 0.8);
+  border-radius: 2px;
+}
+
+.cf-highlight-overlay:hover {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+.cf-highlight-label {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  background: rgba(34, 197, 94, 0.9);
+  color: white;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 2px 8px;
+  border-radius: 3px 3px 0 0;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cf-highlight-dismiss {
+  position: absolute;
+  top: -24px;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 2px 6px;
+  border-radius: 0 3px 0 0;
+  cursor: pointer;
+  border: none;
+  pointer-events: auto;
+}
+
+.cf-highlight-dismiss:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* Area screenshot selection */
+#cf-screenshot-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147483647;
+  cursor: crosshair;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+#cf-screenshot-selection {
+  position: fixed;
+  z-index: 2147483647;
+  border: 2px solid rgba(107, 76, 230, 0.9);
+  background: rgba(107, 76, 230, 0.08);
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+}
+
+#cf-screenshot-dimensions {
+  position: fixed;
+  z-index: 2147483647;
+  background: rgba(107, 76, 230, 0.9);
+  color: white;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 2px 6px;
+  border-radius: 3px;
+  pointer-events: none;
+  white-space: nowrap;
+}

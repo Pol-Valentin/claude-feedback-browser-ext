@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "claude-feedback": {
+      "command": "bun",
+      "args": ["channel/feedback-channel.ts"]
+    }
+  }
+}

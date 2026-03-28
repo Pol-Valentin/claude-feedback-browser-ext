@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.claude/settings.local.json
+.env
+.env.local
+.DS_Store
+*.log
+/tmp/
+package-lock.json
+
+# Runtime files
+/run/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

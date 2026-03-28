@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Claude Feedback",
+  "version": "0.1.0",
+  "description": "Send visual feedback on DOM elements to Claude Code via MCP",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "sidePanel"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/inspector.js", "content/highlight.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "action": {
+    "default_title": "Claude Feedback",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
