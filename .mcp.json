@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "claude-feedback": {
+    "peekback": {
       "command": "bun",
-      "args": ["channel/feedback-channel.ts"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/channel/feedback-channel.ts"]
     }
   }
 }

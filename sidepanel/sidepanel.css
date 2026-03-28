@@ -1,3 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* --- Theme tokens --- */
+:root {
+  --accent: #5A8F00;
+  --accent-hover: #4A7500;
+  --accent-bg: #EFFFCC;
+  --accent-bg-hover: #E0F5A0;
+  --accent-ring: rgba(90, 143, 0, 0.2);
+  --accent-text-on-accent: #1A2E00;
+
+  --bg-body: #FAFAF8;
+  --bg-surface: #FFFFFF;
+  --bg-surface-alt: #F5F3EF;
+  --bg-preview: #F5F8EC;
+  --bg-input-disabled: #F5F3EF;
+
+  --border: #E5E2DB;
+  --border-light: #EDEBE6;
+
+  --text-primary: #1A1A1A;
+  --text-secondary: #666660;
+  --text-muted: #999990;
+  --text-on-accent: #FFFFFF;
+
+  --indicator-ok: #22c55e;
+  --indicator-ok-glow: rgba(34, 197, 94, 0.5);
+  --indicator-err: #ef4444;
+  --indicator-err-glow: rgba(239, 68, 68, 0.4);
+
+  --session-active-bg: #F0F8D8;
+  --session-active-border: #C5E07A;
+
+  --chat-claude-bg: #FFFFFF;
+  --chat-claude-border: #E5E2DB;
+  --chat-system-bg: #fef3c7;
+  --chat-system-text: #92400e;
+  --chat-highlight-bg: #f0fdf4;
+  --chat-highlight-border: #bbf7d0;
+
+  --code-bg: rgba(0, 0, 0, 0.06);
+
+  --mono: 'JetBrains Mono', 'SF Mono', Monaco, monospace;
+  --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --heading: 'Plus Jakarta Sans', 'DM Sans', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #BFFF00;
+    --accent-hover: #D4FF4D;
+    --accent-bg: rgba(191, 255, 0, 0.15);
+    --accent-bg-hover: rgba(191, 255, 0, 0.22);
+    --accent-ring: rgba(191, 255, 0, 0.2);
+    --accent-text-on-accent: #0A0A0C;
+
+    --bg-body: #0A0A0C;
+    --bg-surface: #141418;
+    --bg-surface-alt: #1E1E24;
+    --bg-preview: rgba(191, 255, 0, 0.06);
+    --bg-input-disabled: #1E1E24;
+
+    --border: rgba(191, 255, 0, 0.12);
+    --border-light: rgba(255, 255, 255, 0.06);
+
+    --text-primary: #F5F0E8;
+    --text-secondary: #C8C2B6;
+    --text-muted: #8A8478;
+    --text-on-accent: #0A0A0C;
+
+    --indicator-ok: #BFFF00;
+    --indicator-ok-glow: rgba(191, 255, 0, 0.4);
+    --indicator-err: #ef4444;
+    --indicator-err-glow: rgba(239, 68, 68, 0.4);
+
+    --session-active-bg: rgba(191, 255, 0, 0.1);
+    --session-active-border: rgba(191, 255, 0, 0.25);
+
+    --chat-claude-bg: #141418;
+    --chat-claude-border: rgba(191, 255, 0, 0.12);
+    --chat-system-bg: rgba(254, 243, 199, 0.1);
+    --chat-system-text: #fcd34d;
+    --chat-highlight-bg: rgba(191, 255, 0, 0.06);
+    --chat-highlight-border: rgba(191, 255, 0, 0.18);
+
+    --code-bg: rgba(255, 255, 255, 0.08);
+  }
+}
+
 /* --- Reset & Base --- */
 * {
   margin: 0;
@@ -6,14 +95,20 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--sans);
   font-size: 13px;
-  color: #1a1a1a;
-  background: #fafafa;
+  color: var(--text-primary);
+  background: var(--bg-body);
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-text-on-accent);
 }
 
 /* --- Header --- */
@@ -22,8 +117,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -34,8 +129,10 @@ body {
 }
 
 .header-left h1 {
+  font-family: var(--heading);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 
 .indicator {
@@ -46,13 +143,13 @@ body {
 }
 
 .indicator.connected {
-  background: #22c55e;
-  box-shadow: 0 0 4px rgba(34, 197, 94, 0.5);
+  background: var(--indicator-ok);
+  box-shadow: 0 0 4px var(--indicator-ok-glow);
 }
 
 .indicator.disconnected {
-  background: #ef4444;
-  box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);
+  background: var(--indicator-err);
+  box-shadow: 0 0 4px var(--indicator-err-glow);
 }
 
 /* --- Highlight toggle --- */
@@ -62,7 +159,7 @@ body {
   gap: 6px;
   cursor: pointer;
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .highlight-toggle input {
@@ -72,7 +169,7 @@ body {
 .toggle-slider {
   width: 28px;
   height: 16px;
-  background: #ccc;
+  background: var(--border);
   border-radius: 8px;
   position: relative;
   transition: background 0.2s;
@@ -85,13 +182,13 @@ body {
   left: 2px;
   width: 12px;
   height: 12px;
-  background: #fff;
+  background: var(--bg-surface);
   border-radius: 50%;
   transition: transform 0.2s;
 }
 
 .highlight-toggle input:checked + .toggle-slider {
-  background: #22c55e;
+  background: var(--accent);
 }
 
 .highlight-toggle input:checked + .toggle-slider::after {
@@ -103,8 +200,8 @@ body {
   display: flex;
   gap: 8px;
   padding: 10px 12px;
-  border-bottom: 1px solid #e5e5e5;
-  background: #fff;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
   flex-shrink: 0;
 }
 
@@ -115,18 +212,20 @@ body {
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--bg-surface);
+  color: var(--text-primary);
   cursor: pointer;
+  font-family: var(--sans);
   font-size: 12px;
   font-weight: 500;
   transition: all 0.15s;
 }
 
 .action-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #ccc;
+  background: var(--bg-surface-alt);
+  border-color: var(--text-muted);
 }
 
 .action-btn:disabled {
@@ -135,9 +234,9 @@ body {
 }
 
 .action-btn.active {
-  background: #6B4CE6;
-  color: #fff;
-  border-color: #6B4CE6;
+  background: var(--accent);
+  color: var(--accent-text-on-accent);
+  border-color: var(--accent);
 }
 
 .btn-icon {
@@ -148,8 +247,8 @@ body {
 #element-preview,
 #screenshot-preview {
   padding: 10px 12px;
-  background: #f0f0ff;
-  border-bottom: 1px solid #e5e5e5;
+  background: var(--bg-preview);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -161,10 +260,12 @@ body {
 }
 
 .preview-title {
+  font-family: var(--sans);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
-  color: #666;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
 }
 
 .icon-btn {
@@ -172,25 +273,25 @@ body {
   border: none;
   cursor: pointer;
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
   padding: 2px;
 }
 
 .icon-btn:hover {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .preview-selector {
-  font-family: 'SF Mono', Monaco, monospace;
+  font-family: var(--mono);
   font-size: 11px;
-  color: #6B4CE6;
+  color: var(--accent);
   word-break: break-all;
   margin-bottom: 4px;
 }
 
 .preview-text {
   font-size: 12px;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .preview-component {
@@ -202,23 +303,25 @@ body {
 #screenshot-img {
   width: 100%;
   border-radius: 4px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
 }
 
 /* --- Comment area --- */
 #comment-area {
   padding: 10px 12px;
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 #comment-input {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  font-family: inherit;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--sans);
   font-size: 12px;
   resize: vertical;
   min-height: 60px;
@@ -226,12 +329,12 @@ body {
 
 #comment-input:focus {
   outline: none;
-  border-color: #6B4CE6;
-  box-shadow: 0 0 0 2px rgba(107, 76, 230, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-ring);
 }
 
 #comment-input.error {
-  border-color: #ef4444;
+  border-color: var(--indicator-err);
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
 }
 
@@ -244,38 +347,42 @@ body {
 
 .primary-btn {
   padding: 6px 16px;
-  background: #6B4CE6;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-text-on-accent);
   border: none;
   border-radius: 6px;
+  font-family: var(--sans);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
 .primary-btn:hover {
-  background: #5a3dd1;
+  background: var(--accent-hover);
 }
 
 .secondary-btn {
   padding: 6px 16px;
-  background: #f5f5f5;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-surface-alt);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
   border-radius: 6px;
+  font-family: var(--sans);
   font-size: 12px;
   cursor: pointer;
+  transition: background 0.15s;
 }
 
 .secondary-btn:hover {
-  background: #eee;
+  background: var(--border);
 }
 
 /* --- Session selector --- */
 #session-selector {
   padding: 8px 12px;
-  border-bottom: 1px solid #e5e5e5;
-  background: #fafafa;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface-alt);
   flex-shrink: 0;
 }
 
@@ -287,10 +394,12 @@ body {
 }
 
 .session-title {
+  font-family: var(--sans);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
-  color: #888;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
 }
 
 #btn-refresh-channels {
@@ -316,16 +425,18 @@ body {
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
+  color: var(--text-primary);
   transition: background 0.1s;
+  border: 1px solid transparent;
 }
 
 .session-item:hover {
-  background: #f0f0f0;
+  background: var(--bg-surface);
 }
 
 .session-item.session-active {
-  background: #ede9fe;
-  border: 1px solid #c4b5fd;
+  background: var(--session-active-bg);
+  border: 1px solid var(--session-active-border);
 }
 
 .session-item.session-disconnected {
@@ -341,11 +452,11 @@ body {
 }
 
 .session-status.connected {
-  background: #22c55e;
+  background: var(--indicator-ok);
 }
 
 .session-status.disconnected {
-  background: #d1d5db;
+  background: var(--text-muted);
 }
 
 .session-label {
@@ -358,8 +469,8 @@ body {
 .session-port,
 .session-id {
   font-size: 10px;
-  color: #999;
-  font-family: 'SF Mono', Monaco, monospace;
+  color: var(--text-muted);
+  font-family: var(--mono);
 }
 
 .session-remove {
@@ -374,7 +485,7 @@ body {
 
 #no-sessions {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   text-align: center;
   padding: 8px;
 }
@@ -389,8 +500,11 @@ body {
 #new-port-input {
   width: 70px;
   padding: 4px 6px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border);
   border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--mono);
   font-size: 12px;
   text-align: center;
 }
@@ -398,8 +512,11 @@ body {
 .banner-port-config input {
   width: 70px;
   padding: 4px 6px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border);
   border-radius: 4px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--mono);
   font-size: 12px;
   text-align: center;
 }
@@ -413,7 +530,7 @@ body {
 
 #chat-empty {
   text-align: center;
-  color: #999;
+  color: var(--text-muted);
   padding: 40px 20px;
   font-size: 13px;
   line-height: 1.5;
@@ -433,39 +550,41 @@ body {
 
 .chat-user {
   align-self: flex-end;
-  background: #6B4CE6;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-text-on-accent);
 }
 
 .chat-user .msg-meta {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .chat-user .msg-meta code {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .chat-user .msg-time {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(0, 0, 0, 0.4);
 }
 
 .chat-claude {
   align-self: flex-start;
-  background: #fff;
-  border: 1px solid #e5e5e5;
+  background: var(--chat-claude-bg);
+  border: 1px solid var(--chat-claude-border);
+  color: var(--text-primary);
 }
 
 .chat-system {
   align-self: center;
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--chat-system-bg);
+  color: var(--chat-system-text);
   font-size: 11px;
 }
 
 .chat-highlight {
   align-self: flex-start;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: var(--chat-highlight-bg);
+  border: 1px solid var(--chat-highlight-border);
 }
 
 .chat-highlight.dismissed {
@@ -475,12 +594,13 @@ body {
 .msg-meta {
   font-size: 11px;
   margin-bottom: 4px;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .msg-meta code {
+  font-family: var(--mono);
   font-size: 10px;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--code-bg);
   padding: 1px 4px;
   border-radius: 3px;
 }
@@ -490,8 +610,9 @@ body {
 }
 
 .msg-content code {
+  font-family: var(--mono);
   font-size: 11px;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--code-bg);
   padding: 1px 4px;
   border-radius: 3px;
 }
@@ -501,12 +622,12 @@ body {
   max-height: 100px;
   object-fit: cover;
   border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
 }
 
 .msg-time {
   font-size: 10px;
-  color: #aaa;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
@@ -522,18 +643,19 @@ body {
   padding: 3px 8px;
   border-radius: 4px;
   cursor: pointer;
-  border: 1px solid #d1d5db;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 .hl-show-btn:hover {
-  background: #f0fdf4;
-  border-color: #22c55e;
+  background: var(--chat-highlight-bg);
+  border-color: var(--indicator-ok);
 }
 
 .hl-dismiss-btn:hover {
-  background: #fef2f2;
-  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border-color: var(--indicator-err);
 }
 
 /* --- Message bar --- */
@@ -542,17 +664,19 @@ body {
   align-items: flex-end;
   gap: 6px;
   padding: 8px 12px;
-  border-top: 1px solid #e5e5e5;
-  background: #fff;
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface);
   flex-shrink: 0;
 }
 
 #message-input {
   flex: 1;
   padding: 8px 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  font-family: inherit;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--sans);
   font-size: 12px;
   resize: none;
   min-height: 34px;
@@ -562,13 +686,13 @@ body {
 
 #message-input:focus {
   outline: none;
-  border-color: #6B4CE6;
-  box-shadow: 0 0 0 2px rgba(107, 76, 230, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-ring);
 }
 
 #message-input:disabled {
   opacity: 0.4;
-  background: #f5f5f5;
+  background: var(--bg-input-disabled);
 }
 
 #btn-message-send {

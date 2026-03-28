@@ -15,7 +15,7 @@ const RECONNECT_DELAY = 2000
 
 // --- Session file (for statusline discovery) ---
 const runtimeDir = process.env.XDG_RUNTIME_DIR || `/run/user/${process.getuid()}`
-const sessionFile = `${runtimeDir}/cf-channel-${process.pid}.session`
+const sessionFile = `${runtimeDir}/peekback-channel-${process.pid}.session`
 writeFileSync(sessionFile, `${CHANNEL_ID}\n${process.ppid}`)
 process.on('exit', () => { try { unlinkSync(sessionFile) } catch {} })
 
@@ -49,14 +49,14 @@ const peerChannels = new Map<string, PeerChannel>()
 
 // --- MCP Server ---
 const mcp = new Server(
-  { name: 'claude-feedback', version: '0.1.0' },
+  { name: 'peekback', version: '0.1.0' },
   {
     capabilities: {
       experimental: { 'claude/channel': {} },
       tools: {},
     },
     instructions:
-      'Feedback from the Claude Feedback browser extension arrives as <channel source="claude-feedback" ...>. ' +
+      'Feedback from the Claude Feedback browser extension arrives as <channel source="peekback" ...>. ' +
       'They contain user feedback on DOM elements or screenshots from web pages they are developing. ' +
       'The feedback includes a fingerprint of the selected element (selector, outerHTML, textContent, attributes, component name) and the page URL. ' +
       'Use this context to locate the element in source code and make the requested changes. ' +
@@ -154,7 +154,7 @@ function handleFeedbackFromExtension(msg: Record<string, unknown>) {
       params: {
         content: msg.comment as string,
         meta: {
-          source: 'claude-feedback',
+          source: 'peekback',
           type: 'element_feedback',
           url: msg.url as string || '',
           selector: msg.selector as string || '',
@@ -174,7 +174,7 @@ function handleFeedbackFromExtension(msg: Record<string, unknown>) {
     // Save screenshot to temp file so Claude can read it with the Read tool
     let imagePath = ''
     if (imageData) {
-      const screenshotDir = '/tmp/claude-feedback-screenshots'
+      const screenshotDir = '/tmp/peekback/screenshots'
       if (!existsSync(screenshotDir)) {
         mkdirSync(screenshotDir, { recursive: true })
       }
@@ -189,7 +189,7 @@ function handleFeedbackFromExtension(msg: Record<string, unknown>) {
       params: {
         content: `${comment}\n\nScreenshot saved at: ${imagePath}\nUse the Read tool to view the image.`,
         meta: {
-          source: 'claude-feedback',
+          source: 'peekback',
           type: 'screenshot',
           url: msg.url as string || '',
           image_path: imagePath,
@@ -203,7 +203,7 @@ function handleFeedbackFromExtension(msg: Record<string, unknown>) {
       params: {
         content: msg.comment as string,
         meta: {
-          source: 'claude-feedback',
+          source: 'peekback',
           type: 'free_message',
           url: msg.url || '',
           session_id: msg.session_id,

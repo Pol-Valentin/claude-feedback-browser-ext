@@ -1,0 +1,13 @@
+{
+  "name": "peekback",
+  "version": "0.1.0",
+  "description": "Visual feedback from browser to Claude Code — inspect DOM elements, capture screenshots, chat bidirectionally via MCP channel",
+  "author": {
+    "name": "Pol-Valentin",
+    "url": "https://github.com/Pol-Valentin"
+  },
+  "homepage": "https://pol-valentin.github.io/peekback-site/",
+  "repository": "https://github.com/Pol-Valentin/claude-feedback-browser-ext",
+  "license": "CC-BY-NC-4.0",
+  "keywords": ["browser", "feedback", "dom", "screenshot", "mcp", "channel", "visual"]
+}
