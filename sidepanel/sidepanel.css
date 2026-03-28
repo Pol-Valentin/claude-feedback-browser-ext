@@ -471,6 +471,15 @@ body {
   font-size: 10px;
   color: var(--text-muted);
   font-family: var(--mono);
+  opacity: 0.5;
+}
+
+.session-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .session-remove {

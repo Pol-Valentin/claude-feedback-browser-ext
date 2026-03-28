@@ -77,13 +77,18 @@ function renderChannelList() {
     const isActive = ch.channelId === activeChannelId
     el.className = `session-item ${isActive ? 'session-active' : ''}`
 
-    const label = ch.cwd
+    const label = ch.name
+      || (ch.cwd ? ch.cwd.replace(/^\/home\/[^/]+\//, '~/') : null)
+      || ch.channelId.slice(0, 8)
+
+    const subtitle = ch.name && ch.cwd
       ? ch.cwd.replace(/^\/home\/[^/]+\//, '~/')
-      : ch.channelId.slice(0, 8)
+      : ''
 
     el.innerHTML = `
       <span class="session-status connected"></span>
       <span class="session-label">${escapeHtml(label)}</span>
+      ${subtitle ? `<span class="session-subtitle">${escapeHtml(subtitle)}</span>` : ''}
       <span class="session-id">${ch.channelId.slice(0, 6)}</span>
     `
 

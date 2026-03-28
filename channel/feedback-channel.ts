@@ -4,14 +4,28 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import { WebSocketServer, WebSocket } from 'ws'
 import { randomUUID } from 'crypto'
-import { writeFileSync, unlinkSync, mkdirSync, existsSync } from 'fs'
+import { writeFileSync, unlinkSync, mkdirSync, existsSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { homedir } from 'os'
 
 // --- Config ---
 const WS_PORT = parseInt(process.env.FEEDBACK_WS_PORT || '9420', 10)
 const CHANNEL_ID = randomUUID()
 const CWD = process.cwd()
 const RECONNECT_DELAY = 2000
+
+// --- Session name discovery ---
+function getSessionName(): string | null {
+  try {
+    const sessionPath = join(homedir(), '.claude', 'sessions', `${process.ppid}.json`)
+    if (existsSync(sessionPath)) {
+      const data = JSON.parse(readFileSync(sessionPath, 'utf-8'))
+      return data.name || null
+    }
+  } catch {}
+  return null
+}
+const SESSION_NAME = getSessionName()
 
 // --- Session file (for statusline discovery) ---
 const runtimeDir = process.env.XDG_RUNTIME_DIR || `/run/user/${process.getuid()}`
@@ -41,6 +55,7 @@ interface PeerChannel {
   channelId: string
   ws: WebSocket
   cwd: string
+  name: string | null
   connectedAt: number
 }
 
@@ -216,10 +231,10 @@ function handleFeedbackFromExtension(msg: Record<string, unknown>) {
 // --- Build channels list (for extension session selector) ---
 function getChannelsList() {
   const list = [
-    { channelId: CHANNEL_ID, cwd: CWD, connectedAt: Date.now() },
+    { channelId: CHANNEL_ID, cwd: CWD, name: SESSION_NAME, connectedAt: Date.now() },
   ]
   for (const peer of peerChannels.values()) {
-    list.push({ channelId: peer.channelId, cwd: peer.cwd, connectedAt: peer.connectedAt })
+    list.push({ channelId: peer.channelId, cwd: peer.cwd, name: peer.name, connectedAt: peer.connectedAt })
   }
   return list
 }
@@ -287,6 +302,7 @@ function startAsHub() {
           channelId: clientId,
           ws,
           cwd: msg.cwd as string,
+          name: (msg.name as string) || null,
           connectedAt: Date.now(),
         })
         ws.send(JSON.stringify({ type: 'channel_registered', channel_id: clientId }))
@@ -355,6 +371,7 @@ function startAsClient() {
       type: 'channel_register',
       channel_id: CHANNEL_ID,
       cwd: CWD,
+      name: SESSION_NAME,
     }))
   })
 
