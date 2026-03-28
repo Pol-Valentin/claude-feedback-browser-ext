@@ -48,7 +48,10 @@ function getSessionName(): string | null {
   } catch {}
   return null
 }
-const SESSION_NAME = getSessionName()
+// Lazy: re-read each time channels list is requested (name may appear after /rename)
+function getSessionNameCached(): string | null {
+  return getSessionName()
+}
 
 // --- Session file (for statusline discovery) ---
 const runtimeDir = process.env.XDG_RUNTIME_DIR || `/run/user/${process.getuid()}`
@@ -254,7 +257,7 @@ function handleFeedbackFromExtension(msg: Record<string, unknown>) {
 // --- Build channels list (for extension session selector) ---
 function getChannelsList() {
   const list = [
-    { channelId: CHANNEL_ID, cwd: CWD, name: SESSION_NAME, connectedAt: Date.now() },
+    { channelId: CHANNEL_ID, cwd: CWD, name: getSessionNameCached(), connectedAt: Date.now() },
   ]
   for (const peer of peerChannels.values()) {
     list.push({ channelId: peer.channelId, cwd: peer.cwd, name: peer.name, connectedAt: peer.connectedAt })
@@ -394,7 +397,7 @@ function startAsClient() {
       type: 'channel_register',
       channel_id: CHANNEL_ID,
       cwd: CWD,
-      name: SESSION_NAME,
+      name: getSessionNameCached(),
     }))
   })
 
