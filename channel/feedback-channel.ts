@@ -15,30 +15,35 @@ const CWD = process.cwd()
 const RECONNECT_DELAY = 2000
 
 // --- Session name discovery ---
+import { basename } from 'path'
+import { readdirSync } from 'fs'
+
 function getSessionName(): string | null {
   try {
-    // First try sessions/{ppid}.json for explicit name
     const sessionPath = join(homedir(), '.claude', 'sessions', `${process.ppid}.json`)
-    if (existsSync(sessionPath)) {
-      const data = JSON.parse(readFileSync(sessionPath, 'utf-8'))
-      if (data.name) return data.name
+    if (!existsSync(sessionPath)) return null
 
-      // If no name, look for customTitle in the project JSONL
-      const sessionId = data.sessionId
-      if (sessionId) {
-        const projectDir = join(homedir(), '.claude', 'projects')
-        if (existsSync(projectDir)) {
-          const { readdirSync } = require('fs')
-          for (const dir of readdirSync(projectDir)) {
-            const jsonlPath = join(projectDir, dir, `${sessionId}.jsonl`)
-            if (existsSync(jsonlPath)) {
-              // Read just the first line
-              const firstLine = readFileSync(jsonlPath, 'utf-8').split('\n')[0]
-              if (firstLine) {
-                const entry = JSON.parse(firstLine)
-                if (entry.type === 'custom-title' && entry.customTitle) {
-                  return entry.customTitle
-                }
+    // Strip null bytes from session file (Claude writes fixed-size files)
+    let raw = readFileSync(sessionPath, 'utf-8').replace(/\0/g, '').trim()
+    if (raw.endsWith(',')) raw = raw.slice(0, -1) + '}'
+    const data = JSON.parse(raw)
+
+    // 1. Explicit name field in session JSON
+    if (data.name) return data.name
+
+    // 2. customTitle in project JSONL (set by /rename)
+    const sessionId = data.sessionId
+    if (sessionId) {
+      const projectDir = join(homedir(), '.claude', 'projects')
+      if (existsSync(projectDir)) {
+        for (const dir of readdirSync(projectDir)) {
+          const jsonlPath = join(projectDir, dir, `${sessionId}.jsonl`)
+          if (existsSync(jsonlPath)) {
+            const firstLine = readFileSync(jsonlPath, 'utf-8').split('\n')[0]
+            if (firstLine) {
+              const entry = JSON.parse(firstLine)
+              if (entry.type === 'custom-title' && entry.customTitle) {
+                return entry.customTitle
               }
             }
           }
@@ -48,9 +53,10 @@ function getSessionName(): string | null {
   } catch {}
   return null
 }
-// Lazy: re-read each time channels list is requested (name may appear after /rename)
+
+// Lazy: re-read each time (name may appear after /rename)
 function getSessionNameCached(): string | null {
-  return getSessionName()
+  return getSessionName() || basename(CWD)
 }
 
 // --- Session file (for statusline discovery) ---
