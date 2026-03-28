@@ -54,10 +54,21 @@
 
   <!-- Comment input -->
   <div id="comment-area" class="hidden">
+    <!-- Attached screenshot preview (for combined feedback) -->
+    <div id="attached-screenshot" class="hidden">
+      <div class="attached-header">
+        <span class="attached-label">📸 Screenshot attached</span>
+        <button id="attached-remove" class="icon-btn" title="Remove screenshot">✕</button>
+      </div>
+      <img id="attached-img" alt="Attached screenshot">
+    </div>
     <textarea id="comment-input" placeholder="Describe your feedback..." rows="3"></textarea>
     <div class="comment-actions">
-      <button id="btn-send" class="primary-btn">Send</button>
-      <button id="btn-cancel" class="secondary-btn">Cancel</button>
+      <button id="btn-attach-screenshot" class="secondary-btn" title="Attach a screenshot">📸 Attach</button>
+      <div class="comment-actions-right">
+        <button id="btn-send" class="primary-btn">Send</button>
+        <button id="btn-cancel" class="secondary-btn">Cancel</button>
+      </div>
     </div>
   </div>
 

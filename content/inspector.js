@@ -55,6 +55,9 @@ function onClick(e) {
   const fingerprint = extractFingerprint(el)
   deactivateInspector()
 
+  // Scroll element into view so a subsequent screenshot will show it
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
   // Send fingerprint to side panel via background
   console.log('[CF Inspector] Element selected:', fingerprint.selector)
   chrome.runtime.sendMessage({

@@ -196,22 +196,40 @@ function handleFeedbackFromExtension(msg: Record<string, unknown>) {
   process.stderr.write(`[Channel] Handling ${feedbackType} for MCP\n`)
 
   if (feedbackType === 'element_feedback') {
+    const meta: Record<string, string> = {
+      source: 'peekback',
+      type: 'element_feedback',
+      url: msg.url as string || '',
+      selector: msg.selector as string || '',
+      outerHTML: msg.outerHTML as string || '',
+      textContent: msg.textContent as string || '',
+      attributes: JSON.stringify(msg.attributes || {}),
+      component: msg.component as string || '',
+      context: JSON.stringify(msg.context || {}),
+      session_id: msg.session_id as string || '',
+    }
+
+    // If screenshot is attached, save it to file
+    let contentExtra = ''
+    const imageData = (msg.image as string || '').replace(/^data:image\/png;base64,/, '')
+    if (imageData) {
+      const screenshotDir = '/tmp/peekback/screenshots'
+      if (!existsSync(screenshotDir)) {
+        mkdirSync(screenshotDir, { recursive: true })
+      }
+      const filename = `element-${Date.now()}.png`
+      const imagePath = join(screenshotDir, filename)
+      writeFileSync(imagePath, Buffer.from(imageData, 'base64'))
+      meta.image_path = imagePath
+      contentExtra = `\n\nScreenshot saved at: ${imagePath}\nUse the Read tool to view the image.`
+      process.stderr.write(`[Channel] Element screenshot saved to ${imagePath}\n`)
+    }
+
     mcp.notification({
       method: 'notifications/claude/channel',
       params: {
-        content: msg.comment as string,
-        meta: {
-          source: 'peekback',
-          type: 'element_feedback',
-          url: msg.url as string || '',
-          selector: msg.selector as string || '',
-          outerHTML: msg.outerHTML as string || '',
-          textContent: msg.textContent as string || '',
-          attributes: JSON.stringify(msg.attributes || {}),
-          component: msg.component as string || '',
-          context: JSON.stringify(msg.context || {}),
-          session_id: msg.session_id as string || '',
-        },
+        content: (msg.comment as string) + contentExtra,
+        meta,
       },
     })
   } else if (feedbackType === 'screenshot') {

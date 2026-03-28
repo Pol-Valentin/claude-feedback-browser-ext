@@ -7,6 +7,7 @@ let inspectorActive = false
 let currentFingerprint = null
 let currentUrl = null
 let currentScreenshot = null
+let attachedScreenshot = null // Screenshot attached to element feedback
 let highlightsEnabled = true
 
 // --- DOM refs ---
@@ -31,6 +32,10 @@ const btnMessageSend = document.getElementById('btn-message-send')
 const sessionListEl = document.getElementById('session-list')
 const noSessions = document.getElementById('no-sessions')
 const btnRefreshChannels = document.getElementById('btn-refresh-channels')
+const btnAttachScreenshot = document.getElementById('btn-attach-screenshot')
+const attachedScreenshotEl = document.getElementById('attached-screenshot')
+const attachedImg = document.getElementById('attached-img')
+const attachedRemove = document.getElementById('attached-remove')
 
 // --- Init ---
 chrome.runtime.sendMessage({ type: 'get_state' }, (res) => {
@@ -105,6 +110,28 @@ btnRefreshChannels.addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'refresh_channels' })
   btnRefreshChannels.classList.add('spinning')
   setTimeout(() => btnRefreshChannels.classList.remove('spinning'), 500)
+})
+
+// --- Attach screenshot to element feedback ---
+btnAttachScreenshot.addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'capture_screenshot' }, (res) => {
+    if (res?.error) {
+      addChatMessage('system', `Screenshot error: ${res.error}`)
+      return
+    }
+    attachedScreenshot = res.image
+    attachedImg.src = res.image
+    attachedScreenshotEl.classList.remove('hidden')
+    btnAttachScreenshot.textContent = '✓ Attached'
+    btnAttachScreenshot.disabled = true
+  })
+})
+
+attachedRemove.addEventListener('click', () => {
+  attachedScreenshot = null
+  attachedScreenshotEl.classList.add('hidden')
+  btnAttachScreenshot.textContent = '📸 Attach'
+  btnAttachScreenshot.disabled = false
 })
 
 // --- Inspect button ---
@@ -216,7 +243,7 @@ function sendFeedback() {
       return
     }
 
-    chrome.runtime.sendMessage({
+    const feedbackMsg = {
       type: 'element_feedback',
       url: currentUrl,
       selector: currentFingerprint.selector,
@@ -226,12 +253,17 @@ function sendFeedback() {
       component: currentFingerprint.component,
       context: currentFingerprint.context,
       comment,
-    })
+    }
+    if (attachedScreenshot) {
+      feedbackMsg.image = attachedScreenshot
+    }
+    chrome.runtime.sendMessage(feedbackMsg)
 
     addChatMessage('user', comment, {
       type: 'element',
       selector: currentFingerprint.selector,
       component: currentFingerprint.component,
+      image: attachedScreenshot || null,
     })
   } else if (currentScreenshot) {
     chrome.runtime.sendMessage({
@@ -257,11 +289,15 @@ screenshotClose.addEventListener('click', clearSelection)
 function clearSelection() {
   currentFingerprint = null
   currentScreenshot = null
+  attachedScreenshot = null
   currentUrl = null
   elementPreview.classList.add('hidden')
   screenshotPreview.classList.add('hidden')
+  attachedScreenshotEl.classList.add('hidden')
   commentArea.classList.add('hidden')
   commentInput.value = ''
+  btnAttachScreenshot.textContent = '📸 Attach'
+  btnAttachScreenshot.disabled = false
 }
 
 // --- Highlight toggle ---
@@ -281,6 +317,9 @@ function addChatMessage(role, content, meta = null) {
   let metaHtml = ''
   if (meta?.type === 'element') {
     metaHtml = `<div class="msg-meta">🔍 <code>${escapeHtml(truncate(meta.selector, 40))}</code>${meta.component ? ` · ⚛️ ${escapeHtml(meta.component)}` : ''}</div>`
+    if (meta.image) {
+      metaHtml += `<div class="msg-meta"><img src="${meta.image}" class="msg-screenshot-thumb" alt="attached screenshot"></div>`
+    }
   } else if (meta?.type === 'screenshot') {
     metaHtml = `<div class="msg-meta"><img src="${meta.image}" class="msg-screenshot-thumb" alt="screenshot"></div>`
   }
