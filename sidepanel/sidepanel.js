@@ -416,6 +416,27 @@ function cropScreenshot(imageDataUrl, rect, dpr) {
   img.src = imageDataUrl
 }
 
+// --- Ctrl+V paste-to-send ---
+document.addEventListener('keydown', async (e) => {
+  if (!(e.ctrlKey && e.key === 'v')) return
+  if (!connected) return
+
+  // Don't intercept if user is typing in an input
+  const active = document.activeElement
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return
+
+  e.preventDefault()
+
+  let clipboardText
+  try {
+    clipboardText = (await navigator.clipboard.readText()).trim()
+  } catch { return }
+  if (!clipboardText) return
+
+  chrome.runtime.sendMessage({ type: 'free_message', url: '', comment: clipboardText })
+  addChatMessage('user', clipboardText)
+})
+
 // --- Utilities ---
 function escapeHtml(str) {
   const div = document.createElement('div')
