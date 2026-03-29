@@ -22,56 +22,6 @@
     </div>
   </header>
 
-  <!-- Actions -->
-  <div id="actions">
-    <button id="btn-inspect" class="action-btn" disabled>
-      <span class="btn-icon">🔍</span>
-      <span>Inspect</span>
-    </button>
-    <button id="btn-screenshot" class="action-btn" disabled>
-      <span class="btn-icon">📸</span>
-      <span>Screenshot</span>
-    </button>
-  </div>
-
-  <!-- Element preview (shown after selection) -->
-  <div id="element-preview" class="hidden">
-    <div class="preview-header">
-      <span class="preview-title">Selected element</span>
-      <button id="preview-close" class="icon-btn" title="Clear selection">✕</button>
-    </div>
-    <div id="preview-content"></div>
-  </div>
-
-  <!-- Screenshot preview -->
-  <div id="screenshot-preview" class="hidden">
-    <div class="preview-header">
-      <span class="preview-title">Screenshot</span>
-      <button id="screenshot-close" class="icon-btn" title="Clear">✕</button>
-    </div>
-    <img id="screenshot-img" alt="Screenshot preview">
-  </div>
-
-  <!-- Comment input -->
-  <div id="comment-area" class="hidden">
-    <!-- Attached screenshot preview (for combined feedback) -->
-    <div id="attached-screenshot" class="hidden">
-      <div class="attached-header">
-        <span class="attached-label">📸 Screenshot attached</span>
-        <button id="attached-remove" class="icon-btn" title="Remove screenshot">✕</button>
-      </div>
-      <img id="attached-img" alt="Attached screenshot">
-    </div>
-    <textarea id="comment-input" placeholder="Describe your feedback..." rows="3"></textarea>
-    <div class="comment-actions">
-      <button id="btn-attach-screenshot" class="secondary-btn" title="Attach a screenshot">📸 Attach</button>
-      <div class="comment-actions-right">
-        <button id="btn-send" class="primary-btn">Send</button>
-        <button id="btn-cancel" class="secondary-btn">Cancel</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Channel selector -->
   <div id="session-selector">
     <div class="session-header">
@@ -87,15 +37,45 @@
   <!-- Chat thread -->
   <div id="chat-thread">
     <div id="chat-empty">
-      <p>👋 Select an element or take a screenshot to send feedback to Claude.</p>
+      <p>Select an element or take a screenshot to send feedback to Claude.</p>
     </div>
     <div id="chat-messages"></div>
   </div>
 
-  <!-- Free message input (always visible at bottom) -->
-  <div id="message-bar">
-    <textarea id="message-input" placeholder="Send a message to Claude..." rows="1" disabled></textarea>
-    <button id="btn-message-send" class="primary-btn" disabled>↑</button>
+  <!-- Unified Composer -->
+  <div id="composer">
+    <!-- Element chip (shown when element captured) -->
+    <div id="chip-element" class="chip hidden">
+      <div class="chip-content">
+        <span class="chip-icon">🔍</span>
+        <span id="chip-element-label" class="chip-label"></span>
+      </div>
+      <button id="chip-element-remove" class="chip-remove" title="Remove element">✕</button>
+    </div>
+
+    <!-- Screenshot chip (shown when screenshot captured) -->
+    <div id="chip-screenshot" class="chip hidden">
+      <img id="chip-screenshot-img" class="chip-thumb" alt="Screenshot">
+      <button id="chip-screenshot-remove" class="chip-remove" title="Remove screenshot">✕</button>
+    </div>
+
+    <!-- Single textarea -->
+    <textarea id="composer-input" placeholder="Send a message to Claude..." rows="1" disabled></textarea>
+
+    <!-- Action bar -->
+    <div id="composer-actions">
+      <button id="btn-element" class="capture-btn" disabled title="Select a page element">
+        <span class="capture-btn-icon">🔍</span>
+        <span class="capture-btn-label">Element</span>
+      </button>
+      <button id="btn-screenshot" class="capture-btn" disabled title="Capture a screenshot region">
+        <span class="capture-btn-icon">📸</span>
+        <span class="capture-btn-label">Screenshot</span>
+      </button>
+      <button id="btn-send" class="send-btn" disabled title="Send feedback">
+        <span>↑</span>
+      </button>
+    </div>
   </div>
 
   <script src="sidepanel.js"></script>

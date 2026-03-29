@@ -3,39 +3,32 @@ let connected = false
 let sessionId = null
 let activeChannelId = null
 let channelsList = []
-let inspectorActive = false
-let currentFingerprint = null
-let currentUrl = null
-let currentScreenshot = null
-let attachedScreenshot = null // Screenshot attached to element feedback
+let capturedElement = null   // { fingerprint, url }
+let capturedScreenshot = null // base64 data url
 let highlightsEnabled = true
+let elementCapturing = false
+let screenshotCapturing = false
 
 // --- DOM refs ---
 const connectionIndicator = document.getElementById('connection-indicator')
-const btnInspect = document.getElementById('btn-inspect')
-const btnScreenshot = document.getElementById('btn-screenshot')
-const elementPreview = document.getElementById('element-preview')
-const previewContent = document.getElementById('preview-content')
-const previewClose = document.getElementById('preview-close')
-const screenshotPreview = document.getElementById('screenshot-preview')
-const screenshotImg = document.getElementById('screenshot-img')
-const screenshotClose = document.getElementById('screenshot-close')
-const commentArea = document.getElementById('comment-area')
-const commentInput = document.getElementById('comment-input')
-const btnSend = document.getElementById('btn-send')
-const btnCancel = document.getElementById('btn-cancel')
-const chatMessages = document.getElementById('chat-messages')
-const chatEmpty = document.getElementById('chat-empty')
 const highlightToggle = document.getElementById('highlight-toggle')
-const messageInput = document.getElementById('message-input')
-const btnMessageSend = document.getElementById('btn-message-send')
 const sessionListEl = document.getElementById('session-list')
 const noSessions = document.getElementById('no-sessions')
 const btnRefreshChannels = document.getElementById('btn-refresh-channels')
-const btnAttachScreenshot = document.getElementById('btn-attach-screenshot')
-const attachedScreenshotEl = document.getElementById('attached-screenshot')
-const attachedImg = document.getElementById('attached-img')
-const attachedRemove = document.getElementById('attached-remove')
+const chatMessages = document.getElementById('chat-messages')
+const chatEmpty = document.getElementById('chat-empty')
+
+// Composer
+const composerInput = document.getElementById('composer-input')
+const btnElement = document.getElementById('btn-element')
+const btnScreenshot = document.getElementById('btn-screenshot')
+const btnSend = document.getElementById('btn-send')
+const chipElement = document.getElementById('chip-element')
+const chipElementLabel = document.getElementById('chip-element-label')
+const chipElementRemove = document.getElementById('chip-element-remove')
+const chipScreenshot = document.getElementById('chip-screenshot')
+const chipScreenshotImg = document.getElementById('chip-screenshot-img')
+const chipScreenshotRemove = document.getElementById('chip-screenshot-remove')
 
 // --- Init ---
 chrome.runtime.sendMessage({ type: 'get_state' }, (res) => {
@@ -59,14 +52,30 @@ function updateState(state) {
   const hasActive = connected && activeChannelId
   connectionIndicator.className = `indicator ${connected ? 'connected' : 'disconnected'}`
   connectionIndicator.title = connected ? `Connected (${channelsList.length} channel${channelsList.length !== 1 ? 's' : ''})` : 'Disconnected'
-  btnInspect.disabled = !hasActive
-  btnScreenshot.disabled = !hasActive
-  messageInput.disabled = !hasActive
-  btnMessageSend.disabled = !hasActive
 
+  btnElement.disabled = !hasActive
+  btnScreenshot.disabled = !hasActive
+  composerInput.disabled = !hasActive
+  updateSendButton()
   renderChannelList()
 }
 
+function updateSendButton() {
+  const hasText = composerInput.value.trim().length > 0
+  const hasElement = !!capturedElement
+  const hasScreenshot = !!capturedScreenshot
+
+  // Element without comment → disabled. Screenshot alone or text alone → ok.
+  if (hasElement && !hasText) {
+    btnSend.disabled = true
+  } else if (hasText || hasScreenshot) {
+    btnSend.disabled = !connected
+  } else {
+    btnSend.disabled = true
+  }
+}
+
+// --- Channel list ---
 function renderChannelList() {
   sessionListEl.innerHTML = ''
 
@@ -105,80 +114,91 @@ function renderChannelList() {
   }
 }
 
-// --- Refresh channels ---
 btnRefreshChannels.addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'refresh_channels' })
   btnRefreshChannels.classList.add('spinning')
   setTimeout(() => btnRefreshChannels.classList.remove('spinning'), 500)
 })
 
-// --- Attach screenshot to element feedback ---
-btnAttachScreenshot.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ type: 'capture_screenshot' }, (res) => {
-    if (res?.error) {
-      addChatMessage('system', `Screenshot error: ${res.error}`)
-      return
-    }
-    attachedScreenshot = res.image
-    attachedImg.src = res.image
-    attachedScreenshotEl.classList.remove('hidden')
-    btnAttachScreenshot.textContent = '✓ Attached'
-    btnAttachScreenshot.disabled = true
-  })
+// --- Element capture ---
+btnElement.addEventListener('click', () => {
+  if (capturedElement) {
+    // Re-capture: clear current and start inspector again
+    removeElement()
+  }
+  chrome.runtime.sendMessage({ type: 'toggle_inspector' })
+  elementCapturing = true
+  btnElement.classList.add('capturing')
 })
 
-attachedRemove.addEventListener('click', () => {
-  attachedScreenshot = null
-  attachedScreenshotEl.classList.add('hidden')
-  btnAttachScreenshot.textContent = '📸 Attach'
-  btnAttachScreenshot.disabled = false
-})
+chipElementRemove.addEventListener('click', removeElement)
 
-// --- Inspect button ---
-btnInspect.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ type: 'toggle_inspector' }, (res) => {
-    if (res?.active !== undefined) {
-      inspectorActive = res.active
-    } else {
-      inspectorActive = !inspectorActive
-    }
-    btnInspect.classList.toggle('active', inspectorActive)
-  })
-})
+function removeElement() {
+  capturedElement = null
+  chipElement.classList.add('hidden')
+  btnElement.classList.remove('captured')
+  updateSendButton()
+}
 
-// --- Screenshot button (area selection) ---
+// --- Screenshot capture ---
 btnScreenshot.addEventListener('click', () => {
-  clearSelection()
-  // Enter area selection mode in the content script
+  if (capturedScreenshot) {
+    removeScreenshot()
+  }
   chrome.runtime.sendMessage({ type: 'start_area_screenshot' })
-  btnScreenshot.classList.add('active')
+  screenshotCapturing = true
+  btnScreenshot.classList.add('capturing')
 })
+
+chipScreenshotRemove.addEventListener('click', removeScreenshot)
+
+function removeScreenshot() {
+  capturedScreenshot = null
+  chipScreenshot.classList.add('hidden')
+  btnScreenshot.classList.remove('captured')
+  updateSendButton()
+}
 
 // --- Incoming messages ---
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'element_selected') {
-    currentFingerprint = msg.fingerprint
-    currentUrl = msg.url
-    currentScreenshot = null
-    inspectorActive = false
-    btnInspect.classList.remove('active')
+    capturedElement = { fingerprint: msg.fingerprint, url: msg.url }
+    elementCapturing = false
+    btnElement.classList.remove('capturing')
+    btnElement.classList.add('captured')
 
     const fp = msg.fingerprint
-    previewContent.innerHTML = `
-      <div class="preview-selector">${escapeHtml(fp.selector)}</div>
-      <div class="preview-text">${escapeHtml(truncate(fp.textContent, 80))}</div>
-      ${fp.component ? `<div class="preview-component">⚛️ ${escapeHtml(fp.component)}</div>` : ''}
-    `
-    elementPreview.classList.remove('hidden')
-    screenshotPreview.classList.add('hidden')
-    commentArea.classList.remove('hidden')
-    commentInput.focus()
+    const label = fp.component
+      ? `${fp.component} — ${truncate(fp.selector, 30)}`
+      : truncate(fp.selector, 40)
+    chipElementLabel.textContent = label
+    chipElement.classList.remove('hidden')
+
+    composerInput.focus()
+    updateSendButton()
     return
   }
 
   if (msg.type === 'inspector_cancelled') {
-    inspectorActive = false
-    btnInspect.classList.remove('active')
+    elementCapturing = false
+    btnElement.classList.remove('capturing')
+    return
+  }
+
+  if (msg.type === 'area_screenshot_result') {
+    screenshotCapturing = false
+    btnScreenshot.classList.remove('capturing')
+    if (msg.error) {
+      addChatMessage('system', `Screenshot error: ${msg.error}`)
+      return
+    }
+    cropScreenshot(msg.image, msg.rect, msg.dpr)
+    return
+  }
+
+  if (msg.type === 'area_screenshot_cancelled') {
+    screenshotCapturing = false
+    btnScreenshot.classList.remove('capturing')
     return
   }
 
@@ -197,21 +217,6 @@ chrome.runtime.onMessage.addListener((msg) => {
     return
   }
 
-  if (msg.type === 'area_screenshot_result') {
-    btnScreenshot.classList.remove('active')
-    if (msg.error) {
-      addChatMessage('system', `Screenshot error: ${msg.error}`)
-      return
-    }
-    cropScreenshot(msg.image, msg.rect, msg.dpr)
-    return
-  }
-
-  if (msg.type === 'area_screenshot_cancelled') {
-    btnScreenshot.classList.remove('active')
-    return
-  }
-
   if (msg.type === 'highlight_dismissed') {
     const hlMsg = document.querySelector(`[data-highlight-id="${msg.highlightId}"]`)
     if (hlMsg) {
@@ -223,81 +228,78 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 })
 
-// --- Send feedback ---
-btnSend.addEventListener('click', sendFeedback)
-commentInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) sendFeedback()
+// --- Send ---
+btnSend.addEventListener('click', send)
+composerInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+})
+composerInput.addEventListener('input', () => {
+  composerInput.style.height = 'auto'
+  composerInput.style.height = Math.min(composerInput.scrollHeight, 120) + 'px'
+  updateSendButton()
 })
 
-function sendFeedback() {
-  const comment = commentInput.value.trim()
+function send() {
+  const text = composerInput.value.trim()
+  const hasElement = !!capturedElement
+  const hasScreenshot = !!capturedScreenshot
 
-  if (currentFingerprint) {
-    if (!comment) {
-      commentInput.classList.add('error')
-      commentInput.placeholder = 'Please add a comment...'
-      setTimeout(() => {
-        commentInput.classList.remove('error')
-        commentInput.placeholder = 'Describe your feedback...'
-      }, 2000)
-      return
-    }
+  // Validation
+  if (hasElement && !text) return
+  if (!hasElement && !hasScreenshot && !text) return
 
+  if (hasElement) {
+    // element_feedback (optionally with image)
+    const fp = capturedElement.fingerprint
     const feedbackMsg = {
       type: 'element_feedback',
-      url: currentUrl,
-      selector: currentFingerprint.selector,
-      outerHTML: currentFingerprint.outerHTML,
-      textContent: currentFingerprint.textContent,
-      attributes: currentFingerprint.attributes,
-      component: currentFingerprint.component,
-      context: currentFingerprint.context,
-      comment,
+      url: capturedElement.url,
+      selector: fp.selector,
+      outerHTML: fp.outerHTML,
+      textContent: fp.textContent,
+      attributes: fp.attributes,
+      component: fp.component,
+      context: fp.context,
+      comment: text,
     }
-    if (attachedScreenshot) {
-      feedbackMsg.image = attachedScreenshot
+    if (hasScreenshot) {
+      feedbackMsg.image = capturedScreenshot
     }
     chrome.runtime.sendMessage(feedbackMsg)
-
-    addChatMessage('user', comment, {
+    addChatMessage('user', text, {
       type: 'element',
-      selector: currentFingerprint.selector,
-      component: currentFingerprint.component,
-      image: attachedScreenshot || null,
+      selector: fp.selector,
+      component: fp.component,
+      image: capturedScreenshot || null,
     })
-  } else if (currentScreenshot) {
+  } else if (hasScreenshot) {
+    // screenshot only
     chrome.runtime.sendMessage({
       type: 'screenshot',
       url: '',
-      image: currentScreenshot,
-      comment,
+      image: capturedScreenshot,
+      comment: text,
     })
-
-    addChatMessage('user', comment || 'Screenshot captured', {
+    addChatMessage('user', text || 'Screenshot captured', {
       type: 'screenshot',
-      image: currentScreenshot,
+      image: capturedScreenshot,
     })
+  } else {
+    // free message
+    chrome.runtime.sendMessage({ type: 'free_message', url: '', comment: text })
+    addChatMessage('user', text)
   }
 
-  clearSelection()
-}
-
-btnCancel.addEventListener('click', clearSelection)
-previewClose.addEventListener('click', clearSelection)
-screenshotClose.addEventListener('click', clearSelection)
-
-function clearSelection() {
-  currentFingerprint = null
-  currentScreenshot = null
-  attachedScreenshot = null
-  currentUrl = null
-  elementPreview.classList.add('hidden')
-  screenshotPreview.classList.add('hidden')
-  attachedScreenshotEl.classList.add('hidden')
-  commentArea.classList.add('hidden')
-  commentInput.value = ''
-  btnAttachScreenshot.textContent = '📸 Attach'
-  btnAttachScreenshot.disabled = false
+  // Reset composer
+  capturedElement = null
+  capturedScreenshot = null
+  chipElement.classList.add('hidden')
+  chipScreenshot.classList.add('hidden')
+  btnElement.classList.remove('captured', 'capturing')
+  btnScreenshot.classList.remove('captured', 'capturing')
+  composerInput.value = ''
+  composerInput.style.height = 'auto'
+  updateSendButton()
 }
 
 // --- Highlight toggle ---
@@ -368,25 +370,6 @@ function addHighlightMessage(selector, label) {
   chatMessages.scrollTop = chatMessages.scrollHeight
 }
 
-// --- Free message input ---
-btnMessageSend.addEventListener('click', sendFreeMessage)
-messageInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFreeMessage() }
-})
-messageInput.addEventListener('input', () => {
-  messageInput.style.height = 'auto'
-  messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px'
-})
-
-function sendFreeMessage() {
-  const text = messageInput.value.trim()
-  if (!text) return
-  chrome.runtime.sendMessage({ type: 'free_message', url: '', comment: text })
-  addChatMessage('user', text)
-  messageInput.value = ''
-  messageInput.style.height = 'auto'
-}
-
 // --- Crop screenshot ---
 function cropScreenshot(imageDataUrl, rect, dpr) {
   const img = new Image()
@@ -403,12 +386,13 @@ function cropScreenshot(imageDataUrl, rect, dpr) {
     const ctx = canvas.getContext('2d')
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
 
-    const croppedDataUrl = canvas.toDataURL('image/png')
-    currentScreenshot = croppedDataUrl
-    screenshotImg.src = croppedDataUrl
-    screenshotPreview.classList.remove('hidden')
-    commentArea.classList.remove('hidden')
-    commentInput.focus()
+    capturedScreenshot = canvas.toDataURL('image/png')
+    chipScreenshotImg.src = capturedScreenshot
+    chipScreenshot.classList.remove('hidden')
+    btnScreenshot.classList.add('captured')
+
+    composerInput.focus()
+    updateSendButton()
   }
   img.onerror = () => {
     addChatMessage('system', 'Failed to process screenshot')
@@ -421,7 +405,6 @@ document.addEventListener('keydown', async (e) => {
   if (!(e.ctrlKey && e.key === 'v')) return
   if (!connected) return
 
-  // Don't intercept if user is typing in an input
   const active = document.activeElement
   if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) return
 
