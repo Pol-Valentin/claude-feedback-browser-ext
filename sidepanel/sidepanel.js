@@ -400,6 +400,25 @@ function cropScreenshot(imageDataUrl, rect, dpr) {
   img.src = imageDataUrl
 }
 
+// --- Keyboard shortcuts ---
+document.addEventListener('keydown', (e) => {
+  if (!connected) return
+
+  // Ctrl+Shift+E → Element capture
+  if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+    e.preventDefault()
+    btnElement.click()
+    return
+  }
+
+  // Ctrl+Shift+S → Screenshot capture
+  if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+    e.preventDefault()
+    btnScreenshot.click()
+    return
+  }
+})
+
 // --- Ctrl+V paste-to-send ---
 document.addEventListener('keydown', async (e) => {
   if (!(e.ctrlKey && e.key === 'v')) return
