@@ -30,6 +30,13 @@ Le Side Panel SHALL afficher un sélecteur de session permettant de choisir la s
 - **THEN** le session picker affiche la liste des sessions avec leur identifiant (cwd abrégé + début du session_id)
 - **THEN** l'utilisateur peut sélectionner la session cible
 
+#### Scenario: Persistance du channel actif
+- **WHEN** l'utilisateur sélectionne un channel
+- **THEN** le choix est persisté dans `chrome.storage.session`
+- **WHEN** l'extension se reconnecte (reload du service worker, changement de hub)
+- **THEN** le channel précédemment sélectionné est restauré si toujours disponible
+- **THEN** sinon le premier channel disponible est auto-sélectionné
+
 #### Scenario: Aucune session connectée
 - **WHEN** aucune session n'est connectée (WebSocket déconnecté ou pas de session)
 - **THEN** les boutons Inspect et Screenshot sont désactivés

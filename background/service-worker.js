@@ -10,6 +10,18 @@ let sessionId = null
 let activeChannelId = null // Which Claude Code session to send to
 let channelsList = [] // Available channels [{channelId, cwd, connectedAt}]
 
+// Restore activeChannelId from session storage (survives service worker restarts)
+chrome.storage.session.get(['activeChannelId'], (result) => {
+  if (result.activeChannelId) {
+    activeChannelId = result.activeChannelId
+  }
+})
+
+function setActiveChannel(channelId) {
+  activeChannelId = channelId
+  chrome.storage.session.set({ activeChannelId: channelId })
+}
+
 // --- WebSocket Connection (single, to the hub) ---
 function connectWebSocket() {
   if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
@@ -48,7 +60,6 @@ function connectWebSocket() {
     wsConnected = false
     ws = null
     channelsList = []
-    activeChannelId = null
     broadcastState()
     scheduleReconnect()
   }
@@ -91,9 +102,12 @@ function handleIncomingMessage(msg) {
   if (msg.type === 'subscribed') {
     sessionId = msg.session_id
     channelsList = msg.channels || []
-    // Auto-select first channel
-    if (channelsList.length > 0 && !activeChannelId) {
-      activeChannelId = channelsList[0].channelId
+    // Validate restored/current activeChannelId against available channels
+    if (activeChannelId && !channelsList.find(c => c.channelId === activeChannelId)) {
+      setActiveChannel(channelsList.length > 0 ? channelsList[0].channelId : null)
+    }
+    if (!activeChannelId && channelsList.length > 0) {
+      setActiveChannel(channelsList[0].channelId)
     }
     broadcastState()
     return
@@ -103,10 +117,10 @@ function handleIncomingMessage(msg) {
     channelsList = msg.channels || []
     // Keep active if still exists, else auto-select
     if (activeChannelId && !channelsList.find(c => c.channelId === activeChannelId)) {
-      activeChannelId = channelsList.length > 0 ? channelsList[0].channelId : null
+      setActiveChannel(channelsList.length > 0 ? channelsList[0].channelId : null)
     }
     if (!activeChannelId && channelsList.length > 0) {
-      activeChannelId = channelsList[0].channelId
+      setActiveChannel(channelsList[0].channelId)
     }
     broadcastState()
     return
@@ -213,7 +227,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === 'set_active_channel') {
-    activeChannelId = msg.channelId
+    setActiveChannel(msg.channelId)
     broadcastState()
     sendResponse({ ok: true })
     return true
