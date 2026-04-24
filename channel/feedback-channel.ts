@@ -6,7 +6,11 @@ import { WebSocketServer, WebSocket } from 'ws'
 import { randomUUID } from 'crypto'
 import { writeFileSync, unlinkSync, mkdirSync, existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import { homedir } from 'os'
+import { homedir, tmpdir } from 'os'
+
+// Cross-platform runtime dir: XDG on Linux, TMPDIR on macOS/others
+const RUNTIME_DIR = process.env.XDG_RUNTIME_DIR
+  ?? (process.platform === 'linux' ? `/run/user/${process.getuid()}` : tmpdir())
 
 // --- Config ---
 const WS_PORT = parseInt(process.env.FEEDBACK_WS_PORT || '9420', 10)
@@ -60,8 +64,7 @@ function getSessionNameCached(): string | null {
 }
 
 // --- Session file (for statusline discovery) ---
-const runtimeDir = process.env.XDG_RUNTIME_DIR || `/run/user/${process.getuid()}`
-const sessionFile = `${runtimeDir}/peekback-channel-${process.pid}.session`
+const sessionFile = `${RUNTIME_DIR}/peekback-channel-${process.pid}.session`
 writeFileSync(sessionFile, `${CHANNEL_ID}\n${process.ppid}`)
 process.on('exit', () => { try { unlinkSync(sessionFile) } catch {} })
 
