@@ -4,7 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import { WebSocketServer, WebSocket } from 'ws'
 import { randomUUID } from 'crypto'
-import { writeFileSync, unlinkSync, mkdirSync, existsSync, readFileSync } from 'fs'
+import { writeFileSync, unlinkSync, mkdirSync, existsSync, readFileSync, appendFileSync } from 'fs'
 import { join } from 'path'
 import { homedir, tmpdir } from 'os'
 
@@ -68,6 +68,15 @@ const sessionFile = `${RUNTIME_DIR}/peekback-channel-${process.pid}.session`
 writeFileSync(sessionFile, `${CHANNEL_ID}\n${process.ppid}`)
 process.on('exit', () => { try { unlinkSync(sessionFile) } catch {} })
 
+// --- Side-channel events file: workaround for stream-json mode dropping channel notifications.
+// In Claude Desktop, claude.real receives notifications/claude/channel but never emits <channel>
+// events on its stream-json output. A wrapper proxy reads this file and injects events as
+// synthetic user messages into claude.real's stdin. Scoped by ppid (= claude.real PID) so multiple
+// parallel sessions don't cross-pollute. In CLI / interactive mode no wrapper reads this file —
+// it's a harmless orphan written briefly and removed on process exit.
+const eventsFile = `${RUNTIME_DIR}/claude-channel-events-${process.ppid}.jsonl`
+process.on('exit', () => { try { unlinkSync(eventsFile) } catch {} })
+
 // --- Role: hub or client ---
 let role: 'hub' | 'client' | 'init' = 'init'
 let wss: WebSocketServer | null = null
@@ -114,6 +123,26 @@ const mcp = new Server(
       'You can also use the highlight tool to highlight elements in the page after making changes.',
   },
 )
+
+// Helper: send the standard MCP channel notification AND append to the side-channel events file.
+// In Claude Desktop's stream-json mode, claude.real drops notifications/claude/channel; the wrapper
+// proxy reads this file and re-injects events as synthetic user messages.
+// `metaWithSource` is the full meta object as passed to mcp.notification (existing peekback events
+// already include `source: 'peekback'` in meta). We strip it for the events file and put it at
+// top-level so the wrapper can build `<channel source="..." ...>`.
+function emitChannel(content: string, metaWithSource: Record<string, string>) {
+  mcp.notification({
+    method: 'notifications/claude/channel',
+    params: { content, meta: metaWithSource },
+  })
+  const { source: rawSource, ...meta } = metaWithSource
+  try {
+    appendFileSync(
+      eventsFile,
+      JSON.stringify({ source: rawSource ?? 'peekback', content, meta }) + '\n',
+    )
+  } catch {}
+}
 
 // --- Tools ---
 mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -228,13 +257,7 @@ function handleFeedbackFromExtension(msg: Record<string, unknown>) {
       process.stderr.write(`[Channel] Element screenshot saved to ${imagePath}\n`)
     }
 
-    mcp.notification({
-      method: 'notifications/claude/channel',
-      params: {
-        content: (msg.comment as string) + contentExtra,
-        meta,
-      },
-    })
+    emitChannel((msg.comment as string) + contentExtra, meta)
   } else if (feedbackType === 'screenshot') {
     const comment = (msg.comment as string) || 'Screenshot captured'
     const imageData = (msg.image as string || '').replace(/^data:image\/png;base64,/, '')
@@ -252,31 +275,22 @@ function handleFeedbackFromExtension(msg: Record<string, unknown>) {
       process.stderr.write(`[Channel] Screenshot saved to ${imagePath}\n`)
     }
 
-    mcp.notification({
-      method: 'notifications/claude/channel',
-      params: {
-        content: `${comment}\n\nScreenshot saved at: ${imagePath}\nUse the Read tool to view the image.`,
-        meta: {
-          source: 'peekback',
-          type: 'screenshot',
-          url: msg.url as string || '',
-          image_path: imagePath,
-          session_id: msg.session_id as string || '',
-        },
+    emitChannel(
+      `${comment}\n\nScreenshot saved at: ${imagePath}\nUse the Read tool to view the image.`,
+      {
+        source: 'peekback',
+        type: 'screenshot',
+        url: msg.url as string || '',
+        image_path: imagePath,
+        session_id: msg.session_id as string || '',
       },
-    })
+    )
   } else if (feedbackType === 'free_message') {
-    mcp.notification({
-      method: 'notifications/claude/channel',
-      params: {
-        content: msg.comment as string,
-        meta: {
-          source: 'peekback',
-          type: 'free_message',
-          url: msg.url || '',
-          session_id: msg.session_id,
-        },
-      },
+    emitChannel(msg.comment as string, {
+      source: 'peekback',
+      type: 'free_message',
+      url: (msg.url as string) || '',
+      session_id: msg.session_id as string,
     })
   }
 }
